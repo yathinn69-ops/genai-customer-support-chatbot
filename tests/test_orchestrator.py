@@ -9,6 +9,11 @@ from app.orchestrator import KnowledgeBaseOrchestrator
 class TestKnowledgeBaseOrchestrator(unittest.TestCase):
 
     def create_orchestrator(self, root: Path):
+        """
+        Create an orchestrator using temporary directories so that
+        tests do not modify the real project data.
+        """
+
         return KnowledgeBaseOrchestrator(
             state_file=str(root / "state.json"),
             versions_dir=str(root / "versions"),
@@ -16,6 +21,9 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
             active_dir=str(root / "active"),
             activation_state_file=str(
                 root / "activation_state.json"
+            ),
+            audit_log_file=str(
+                root / "audit" / "audit_log.json"
             ),
         )
 
@@ -45,7 +53,10 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
                 "waiting_for_maintenance",
             )
 
-            self.assertEqual(result.version, 1)
+            self.assertEqual(
+                result.version,
+                1,
+            )
 
     def test_healthy_update_is_activated(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -80,7 +91,16 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
 
             active_file = root / "active" / "policy.txt"
 
-            self.assertTrue(active_file.exists())
+            self.assertTrue(
+                active_file.exists()
+            )
+
+            self.assertEqual(
+                active_file.read_text(
+                    encoding="utf-8"
+                ),
+                "Policy version 1",
+            )
 
     def test_unhealthy_update_rolls_back(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -88,7 +108,9 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
 
             document = root / "policy.txt"
 
-            # Create and activate version 1.
+            # -----------------------------------------------------
+            # Create and activate version 1
+            # -----------------------------------------------------
             document.write_text(
                 "Policy version 1",
                 encoding="utf-8",
@@ -110,7 +132,14 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
                 "activated",
             )
 
-            # Create version 2.
+            self.assertEqual(
+                first_result.active_version,
+                1,
+            )
+
+            # -----------------------------------------------------
+            # Create version 2
+            # -----------------------------------------------------
             document.write_text(
                 "Policy version 2",
                 encoding="utf-8",
@@ -137,6 +166,10 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
 
             active_file = root / "active" / "policy.txt"
 
+            self.assertTrue(
+                active_file.exists()
+            )
+
             self.assertEqual(
                 active_file.read_text(
                     encoding="utf-8"
@@ -149,6 +182,7 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
             root = Path(temp_dir)
 
             document = root / "policy.txt"
+
             document.write_text(
                 "Bad quality update",
                 encoding="utf-8",
@@ -174,6 +208,135 @@ class TestKnowledgeBaseOrchestrator(unittest.TestCase):
 
             self.assertIsNone(
                 result.version
+            )
+
+    def test_successful_activation_creates_audit_events(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+
+            document = root / "policy.txt"
+
+            document.write_text(
+                "Policy version 1",
+                encoding="utf-8",
+            )
+
+            orchestrator = self.create_orchestrator(root)
+
+            result = orchestrator.process_update(
+                file_path=document,
+                current_time=datetime(
+                    2026, 9, 9, 3, 0
+                ),
+                health_check=lambda: True,
+                health_check_duration_seconds=0,
+            )
+
+            self.assertEqual(
+                result.status,
+                "activated",
+            )
+
+            events = orchestrator.audit_logger.read()
+
+            event_names = [
+                event["event"]
+                for event in events
+            ]
+
+            self.assertIn(
+                "document_received",
+                event_names,
+            )
+
+            self.assertIn(
+                "version_created",
+                event_names,
+            )
+
+            self.assertIn(
+                "quality_approved",
+                event_names,
+            )
+
+            self.assertIn(
+                "activation_started",
+                event_names,
+            )
+
+            self.assertIn(
+                "activation_success",
+                event_names,
+            )
+
+    def test_rollback_creates_audit_event(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+
+            document = root / "policy.txt"
+
+            # -----------------------------------------------------
+            # Activate version 1
+            # -----------------------------------------------------
+            document.write_text(
+                "Policy version 1",
+                encoding="utf-8",
+            )
+
+            orchestrator = self.create_orchestrator(root)
+
+            first_result = orchestrator.process_update(
+                file_path=document,
+                current_time=datetime(
+                    2026, 9, 9, 3, 0
+                ),
+                health_check=lambda: True,
+                health_check_duration_seconds=0,
+            )
+
+            self.assertEqual(
+                first_result.status,
+                "activated",
+            )
+
+            # -----------------------------------------------------
+            # Attempt version 2 and force health failure
+            # -----------------------------------------------------
+            document.write_text(
+                "Policy version 2",
+                encoding="utf-8",
+            )
+
+            second_result = orchestrator.process_update(
+                file_path=document,
+                current_time=datetime(
+                    2026, 9, 9, 3, 0
+                ),
+                health_check=lambda: False,
+                health_check_duration_seconds=0,
+            )
+
+            self.assertEqual(
+                second_result.status,
+                "rolled_back",
+            )
+
+            events = orchestrator.audit_logger.read()
+
+            event_names = [
+                event["event"]
+                for event in events
+            ]
+
+            self.assertIn(
+                "rollback",
+                event_names,
+            )
+
+            # Verify that rollback returned to version 1.
+            self.assertEqual(
+                second_result.rolled_back_to,
+                1,
             )
 
 
