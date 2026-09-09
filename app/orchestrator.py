@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable
 
 from app.activation import ActivationManager, ActivationResult
+from app.audit import AuditLogger
 from app.maintenance import MaintenanceScheduler
 from app.pipeline import KnowledgeBasePipeline, PipelineResult
 from app.scheduler import RetryScheduler
@@ -28,6 +29,7 @@ class KnowledgeBaseOrchestrator:
     Coordinate the complete knowledge-base update workflow.
 
     Workflow:
+
         document
             ↓
         validation
@@ -45,6 +47,8 @@ class KnowledgeBaseOrchestrator:
         health check
             ↓
         keep version OR rollback
+
+    Important workflow events are written to the audit log.
     """
 
     def __init__(
@@ -53,13 +57,17 @@ class KnowledgeBaseOrchestrator:
         versions_dir: str = "data/versions",
         quarantine_dir: str = "data/quarantine",
         active_dir: str = "data/documents",
-        activation_state_file: str = "data/versions/activation_state.json",
+        activation_state_file: str = (
+            "data/versions/activation_state.json"
+        ),
+        audit_log_file: str = "data/audit/audit_log.json",
         baseline_accuracy: float = 0.90,
         baseline_grounding: float = 0.90,
         retry_scheduler: RetryScheduler | None = None,
         maintenance_scheduler: MaintenanceScheduler | None = None,
         pipeline: KnowledgeBasePipeline | None = None,
         activation_manager: ActivationManager | None = None,
+        audit_logger: AuditLogger | None = None,
     ) -> None:
 
         self.retry_scheduler = (
@@ -88,6 +96,11 @@ class KnowledgeBaseOrchestrator:
             )
         )
 
+        self.audit_logger = (
+            audit_logger
+            or AuditLogger(audit_log_file)
+        )
+
     def process_update(
         self,
         file_path: str | Path,
@@ -98,18 +111,21 @@ class KnowledgeBaseOrchestrator:
         health_check_duration_seconds: int = 300,
         health_check_interval_seconds: int = 10,
     ) -> OrchestratorResult:
-        """
-        Process a document through the complete workflow.
-
-        The document is first validated and quality-checked.
-        If accepted, a version is created and then activation is
-        attempted according to the maintenance window.
-        """
 
         path = Path(file_path)
+        filename = path.name
 
         # ---------------------------------------------------------
-        # 1. Process document through the knowledge-base pipeline
+        # 1. Document received
+        # ---------------------------------------------------------
+        self.audit_logger.log(
+            event="document_received",
+            message="Document received for processing",
+            filename=filename,
+        )
+
+        # ---------------------------------------------------------
+        # 2. Run knowledge-base pipeline
         # ---------------------------------------------------------
         pipeline_result: PipelineResult = self.pipeline.process(
             path,
@@ -117,27 +133,111 @@ class KnowledgeBaseOrchestrator:
             candidate_grounding=candidate_grounding,
         )
 
-        # Stop immediately for anything that wasn't accepted.
+        # ---------------------------------------------------------
+        # Handle pipeline results
+        # ---------------------------------------------------------
+        if pipeline_result.status == "quarantined":
+            self.audit_logger.log(
+                event="document_quarantined",
+                message=pipeline_result.message,
+                filename=filename,
+            )
+
+        elif pipeline_result.status == "duplicate":
+            self.audit_logger.log(
+                event="duplicate_detected",
+                message=pipeline_result.message,
+                filename=filename,
+            )
+
+        elif pipeline_result.status == "unchanged":
+            self.audit_logger.log(
+                event="document_unchanged",
+                message=pipeline_result.message,
+                filename=filename,
+            )
+
+        elif pipeline_result.status == "rejected_quality":
+            self.audit_logger.log(
+                event="quality_rejected",
+                message=pipeline_result.message,
+                filename=filename,
+            )
+
+        elif pipeline_result.status == "rejected":
+            self.audit_logger.log(
+                event="document_rejected",
+                message=pipeline_result.message,
+                filename=filename,
+            )
+
+        # Stop if pipeline did not accept the document.
         if pipeline_result.status != "accepted":
             return OrchestratorResult(
                 status=pipeline_result.status,
-                filename=path.name,
+                filename=filename,
                 message=pipeline_result.message,
                 version=pipeline_result.version,
             )
 
-        # A successful pipeline result must contain a version.
+        # ---------------------------------------------------------
+        # 3. Make sure a version exists
+        # ---------------------------------------------------------
         if pipeline_result.version is None:
+            message = (
+                "Pipeline accepted document without "
+                "creating a version"
+            )
+
+            self.audit_logger.log(
+                event="pipeline_failure",
+                message=message,
+                filename=filename,
+            )
+
             return OrchestratorResult(
                 status="failed",
-                filename=path.name,
-                message="Pipeline accepted document without creating a version",
+                filename=filename,
+                message=message,
             )
 
         version = pipeline_result.version
 
         # ---------------------------------------------------------
-        # 2. Check maintenance window
+        # 4. Version created
+        # ---------------------------------------------------------
+        self.audit_logger.log(
+            event="version_created",
+            message=f"Created version {version}",
+            filename=filename,
+            version=version,
+        )
+
+        # ---------------------------------------------------------
+        # 5. Quality approved
+        # ---------------------------------------------------------
+        accuracy = (
+            candidate_accuracy
+            if candidate_accuracy is not None
+            else self.pipeline.baseline_accuracy
+        )
+
+        grounding = (
+            candidate_grounding
+            if candidate_grounding is not None
+            else self.pipeline.baseline_grounding
+        )
+
+        self.audit_logger.log(
+            event="quality_approved",
+            message="Document passed quality gate",
+            filename=filename,
+            accuracy=accuracy,
+            grounding=grounding,
+        )
+
+        # ---------------------------------------------------------
+        # 6. Maintenance window
         # ---------------------------------------------------------
         if not self.maintenance_scheduler.is_maintenance_window(
             current_time
@@ -148,23 +248,39 @@ class KnowledgeBaseOrchestrator:
                 )
             )
 
+            message = (
+                f"Version {version} is approved and waiting "
+                f"for the maintenance window. "
+                f"Next window: {next_window}"
+            )
+
+            self.audit_logger.log(
+                event="waiting_for_maintenance",
+                message=message,
+                filename=filename,
+                version=version,
+            )
+
             return OrchestratorResult(
                 status="waiting_for_maintenance",
-                filename=path.name,
-                message=(
-                    f"Version {version} is approved and waiting "
-                    f"for the maintenance window. "
-                    f"Next window: {next_window}"
-                ),
+                filename=filename,
+                message=message,
                 version=version,
             )
 
         # ---------------------------------------------------------
-        # 3. Activate approved version
+        # 7. Activation started
         # ---------------------------------------------------------
+        self.audit_logger.log(
+            event="activation_started",
+            message=f"Starting activation of version {version}",
+            filename=filename,
+            version=version,
+        )
+
         activation_result: ActivationResult = (
             self.activation_manager.activate(
-                filename=path.name,
+                filename=filename,
                 version=version,
                 approved=True,
                 current_time=current_time,
@@ -178,30 +294,75 @@ class KnowledgeBaseOrchestrator:
             )
         )
 
+        # ---------------------------------------------------------
+        # 8. Successful activation
+        # ---------------------------------------------------------
         if activation_result.status == "activated":
-            return OrchestratorResult(
-                status="activated",
-                filename=path.name,
+
+            self.audit_logger.log(
+                event="activation_success",
                 message=activation_result.message,
+                filename=filename,
                 version=version,
-                active_version=activation_result.active_version,
             )
 
-        if activation_result.status == "rolled_back":
             return OrchestratorResult(
-                status="rolled_back",
-                filename=path.name,
+                status="activated",
+                filename=filename,
                 message=activation_result.message,
                 version=version,
-                active_version=activation_result.active_version,
-                rolled_back_to=activation_result.rolled_back_to,
+                active_version=(
+                    activation_result.active_version
+                ),
             )
+
+        # ---------------------------------------------------------
+        # 9. Rollback
+        # ---------------------------------------------------------
+        if activation_result.status == "rolled_back":
+
+            self.audit_logger.log(
+                event="rollback",
+                message=activation_result.message,
+                filename=filename,
+                version=version,
+                rolled_back_to=(
+                    activation_result.rolled_back_to
+                ),
+            )
+
+            return OrchestratorResult(
+                status="rolled_back",
+                filename=filename,
+                message=activation_result.message,
+                version=version,
+                active_version=(
+                    activation_result.active_version
+                ),
+                rolled_back_to=(
+                    activation_result.rolled_back_to
+                ),
+            )
+
+        # ---------------------------------------------------------
+        # 10. Other activation failures
+        # ---------------------------------------------------------
+        self.audit_logger.log(
+            event="activation_failure",
+            message=activation_result.message,
+            filename=filename,
+            version=version,
+        )
 
         return OrchestratorResult(
             status=activation_result.status,
-            filename=path.name,
+            filename=filename,
             message=activation_result.message,
             version=version,
-            active_version=activation_result.active_version,
-            rolled_back_to=activation_result.rolled_back_to,
+            active_version=(
+                activation_result.active_version
+            ),
+            rolled_back_to=(
+                activation_result.rolled_back_to
+            ),
         )

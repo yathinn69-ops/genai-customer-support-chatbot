@@ -1,0 +1,21 @@
+{
+    "maintenance_window": {
+        "start": "02:00",
+        "end": "04:00"
+    },
+    "retry_delays_minutes": [
+        15,
+        30,
+        60
+    ],
+    "quality_thresholds": {
+        "minimum_accuracy": 0.8,
+        "minimum_grounding": 0.8,
+        "baseline_accuracy": 0.9,
+        "baseline_grounding": 0.9
+    },
+    "health_check": {
+        "duration_seconds": 300,
+        "interval_seconds": 10
+    }
+}
