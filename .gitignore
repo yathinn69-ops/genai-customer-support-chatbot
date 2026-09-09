@@ -221,3 +221,7 @@ __marimo__/
 data/documents/*
 data/quarantine/*
 data/versions/*
+# Runtime audit logs
+data/audit/*    
+# Runtime application data
+data/

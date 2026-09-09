@@ -1,0 +1,16 @@
+Company Knowledge Base Policy - Version 3
+
+Employees must follow the latest approved company policies.
+
+All knowledge-base documents are validated before processing.
+Duplicate documents are detected automatically.
+Approved documents are versioned before activation.
+
+Updates are activated only during the configured maintenance window.
+After activation, the service is monitored for health.
+
+If a health check fails, the system automatically rolls back
+to the previous active version.
+
+All important processing, activation, and rollback events are
+recorded in the audit log for traceability.
