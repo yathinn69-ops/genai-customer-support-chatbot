@@ -217,3 +217,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .vscode/
+# Runtime knowledge-base data
+data/documents/*
+data/quarantine/*
+data/versions/*
