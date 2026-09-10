@@ -55,7 +55,9 @@ class ConfigLoader:
 
         try:
             data = json.loads(
-                self.config_file.read_text(encoding="utf-8")
+                self.config_file.read_text(
+                    encoding="utf-8"
+                )
             )
         except json.JSONDecodeError as exc:
             raise ValueError(
@@ -63,12 +65,49 @@ class ConfigLoader:
             ) from exc
 
         if not isinstance(data, dict):
-            raise ValueError("Configuration root must be an object")
+            raise ValueError(
+                "Configuration root must be an object"
+            )
 
-        maintenance = data.get("maintenance_window", {})
-        retry = data.get("retry_delays_minutes", [])
-        quality = data.get("quality_thresholds", {})
-        health = data.get("health_check", {})
+        maintenance = data.get(
+            "maintenance_window",
+            {},
+        )
+
+        retry = data.get(
+            "retry_delays_minutes",
+            [],
+        )
+
+        quality = data.get(
+            "quality_thresholds",
+            {},
+        )
+
+        health = data.get(
+            "health_check",
+            {},
+        )
+
+        if not isinstance(maintenance, dict):
+            raise ValueError(
+                "maintenance_window must be an object"
+            )
+
+        if not isinstance(retry, list):
+            raise ValueError(
+                "retry_delays_minutes must be an array"
+            )
+
+        if not isinstance(quality, dict):
+            raise ValueError(
+                "quality_thresholds must be an object"
+            )
+
+        if not isinstance(health, dict):
+            raise ValueError(
+                "health_check must be an object"
+            )
 
         maintenance_config = MaintenanceConfig(
             start=self._require_string(
@@ -82,7 +121,9 @@ class ConfigLoader:
         )
 
         retry_delays = tuple(
-            self._require_positive_int(value)
+            self._require_positive_int(
+                value
+            )
             for value in retry
         )
 
@@ -143,8 +184,13 @@ class ConfigLoader:
         return value
 
     @staticmethod
-    def _require_positive_int(value) -> int:
-        if isinstance(value, bool) or not isinstance(value, int):
+    def _require_positive_int(
+        value,
+    ) -> int:
+        if isinstance(value, bool) or not isinstance(
+            value,
+            int,
+        ):
             raise ValueError(
                 "Configuration value must be an integer"
             )
@@ -179,3 +225,34 @@ class ConfigLoader:
             )
 
         return value
+
+
+if __name__ == "__main__":
+    config = ConfigLoader().load()
+
+    print("Configuration loaded successfully.")
+    print(
+        f"Maintenance window: "
+        f"{config.maintenance_window.start} - "
+        f"{config.maintenance_window.end}"
+    )
+    print(
+        f"Retry delays: "
+        f"{config.retry.delays_minutes}"
+    )
+    print(
+        f"Minimum accuracy: "
+        f"{config.quality.minimum_accuracy}"
+    )
+    print(
+        f"Minimum grounding: "
+        f"{config.quality.minimum_grounding}"
+    )
+    print(
+        f"Health-check duration: "
+        f"{config.health_check.duration_seconds}s"
+    )
+    print(
+        f"Health-check interval: "
+        f"{config.health_check.interval_seconds}s"
+    )
