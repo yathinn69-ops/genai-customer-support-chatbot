@@ -17,5 +17,80 @@
     "health_check": {
         "duration_seconds": 300,
         "interval_seconds": 10
+    },
+    "ticket_workflow": {
+        "business_hours": {
+            "start": "09:00",
+            "end": "18:00"
+        },
+        "weekends": [
+            5,
+            6
+        ],
+        "holidays": [],
+        "sla_hours": {
+            "P1": 4,
+            "P2": 8,
+            "P3": 24,
+            "P4": 48
+        },
+        "warning_threshold": 0.75,
+        "priority_weights": {
+            "severity": 0.30,
+            "sentiment": 0.20,
+            "waiting_time": 0.20,
+            "customer_impact": 0.20,
+            "sla": 0.10
+        },
+        "duplicate_similarity_threshold": 0.85,
+        "related_similarity_threshold": 0.55,
+        "teams": [
+            {
+                "name": "technical_support",
+                "skills": [
+                    "technical",
+                    "error",
+                    "troubleshooting",
+                    "product"
+                ],
+                "available": true,
+                "current_workload": 2,
+                "max_workload": 10
+            },
+            {
+                "name": "billing_support",
+                "skills": [
+                    "billing",
+                    "invoice",
+                    "payment",
+                    "refund"
+                ],
+                "available": true,
+                "current_workload": 1,
+                "max_workload": 8
+            },
+            {
+                "name": "order_support",
+                "skills": [
+                    "order",
+                    "delivery",
+                    "shipping",
+                    "return"
+                ],
+                "available": true,
+                "current_workload": 3,
+                "max_workload": 10
+            },
+            {
+                "name": "general_support",
+                "skills": [
+                    "general",
+                    "customer_service"
+                ],
+                "available": true,
+                "current_workload": 1,
+                "max_workload": 15
+            }
+        ]
     }
 }
