@@ -1,34 +1,57 @@
-# genai-customer-support-chatbot
-Production-ready GenAI customer support chatbot with RAG, knowledge-base management, multimodal processing, ticket automation, sentiment analysis, multilingual support, security, monitoring and rollback.
 # GenAI Customer Support Chatbot
 
-A production-oriented knowledge-base update and deployment workflow for a GenAI customer-support system.
+A production-oriented GenAI customer-support chatbot with knowledge-base management, multimodal evidence processing, automated ticket workflows, SLA management, security controls, monitoring, and rollback capabilities.
 
-The project focuses on safely processing knowledge-base documents, validating changes, creating versions, scheduling retries, activating approved updates during maintenance windows, monitoring service health, automatically rolling back failed updates, and recording audit events.
+This project was developed by extending the original training project with the assigned internship tasks.
 
 ---
 
-## Project Features
+## Project Overview
+
+The system is designed to support a production-style customer-support workflow:
+
+1. Safely process and update the chatbot knowledge base.
+2. Analyse customer messages and uploaded evidence such as screenshots, invoices, PDFs, and product images.
+3. Convert unresolved conversations into structured support tickets.
+4. Calculate ticket priority and manage SLA deadlines.
+5. Route tickets to suitable support teams.
+6. Detect duplicate and related issues.
+7. Protect sensitive customer information.
+8. Monitor processing and service health.
+9. Maintain versions and support rollback when an update causes problems.
+
+---
+
+# Internship Tasks
+
+## Task 1 — Production Knowledge-Base Pipeline
+
+The knowledge-base pipeline safely manages document updates before they become active.
+
+### Features
 
 - Document fingerprinting and change detection
-- New, modified, unchanged, and duplicate document detection
+- Processing of new and modified documents
+- Duplicate document detection
 - File validation
-- Unsupported/invalid file quarantine
+- Invalid/unsupported file quarantine
 - Document version management
-- Quality and grounding threshold checks
-- Configurable retry scheduling
-- Maintenance-window scheduling
-- Controlled activation of approved versions
-- Five-minute health-monitoring capability
-- Automatic rollback after health-check failure
-- End-to-end workflow orchestration
-- Audit logging for important workflow events
+- Version rollback
+- Quality and grounding checks
+- Accuracy and grounding threshold validation
+- Configurable update scheduling
+- Retry scheduling after failed updates
+- Maintenance-window controlled activation
+- Health monitoring after activation
+- Automatic rollback when health checks fail
+- Access control
+- Prompt-injection protection
+- Sensitive-data masking
+- Monitoring of latency, failures, confidence, and escalations
+- Audit logging
 - Central JSON configuration
-- Automated unit tests
 
----
-
-## Architecture
+### Pipeline Flow
 
 ```text
                     Document
@@ -46,13 +69,13 @@ The project focuses on safely processing knowledge-base documents, validating ch
                        |
                        v
               +-------------------+
-              | Quality / Ground |
+              | Quality / Ground  |
               |      Checks       |
               +-------------------+
                        |
                        v
               +-------------------+
-              |    Versioning      |
+              |    Versioning     |
               +-------------------+
                        |
                        v
