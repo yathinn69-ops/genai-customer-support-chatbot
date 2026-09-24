@@ -1,6 +1,6 @@
 # GenAI Customer Support Chatbot
 
-A production-oriented GenAI customer-support chatbot extended from the original training project with internship features for knowledge-base management, multimodal customer-support processing, automated ticket workflows, SLA management, security, monitoring, and rollback.
+A production-oriented GenAI customer-support chatbot extended from the original training project with internship features for knowledge-base management, multimodal customer-support processing, automated ticket workflows, SLA management, RAG-based knowledge assistance, security, monitoring, and rollback.
 
 ---
 
@@ -14,9 +14,13 @@ This project provides a production-style customer-support workflow covering:
 - Ticket priority and SLA management
 - Skill-based ticket routing
 - Duplicate and related-issue detection
+- RAG-based knowledge assistance
+- Policy and document version handling
 - Sensitive-data protection
+- Prompt-injection protection
 - Monitoring and health checks
 - Version management and rollback
+- Source-grounded responses
 
 The internship tasks were implemented as additional features within the same training project.
 
@@ -97,13 +101,13 @@ Create a production pipeline that safely updates and monitors the chatbot's know
               +-------------------+
                     /       \
                    /         \
-             Healthy       Unhealthy
-                |              |
-                v              v
-           Keep Version    Auto Rollback
-                               |
-                               v
-                         Previous Version
+              Healthy      Unhealthy
+                 |              |
+                 v              v
+            Keep Version    Auto Rollback
+                                |
+                                v
+                           Previous Version
 ```
 
 ## Validation and Security
@@ -154,26 +158,26 @@ Extend the chatbot to analyse customer messages together with screenshots, invoi
 Customer Message + Uploaded Evidence
                   |
                   v
-          File Validation
+            File Validation
                   |
                   v
-          Security Checks
+            Security Checks
                   |
                   v
-             OCR / Parsing
+               OCR / Parsing
                   |
                   v
-        Evidence Extraction
+          Evidence Extraction
                   |
                   v
-       Compare With Message
-             /         \
-            /           \
-         Match        Conflict
-           |              |
-           v              v
-       Continue       Request
-                      Clarification
+         Compare With Message
+              /         \
+             /           \
+          Match        Conflict
+            |              |
+            v              v
+        Continue       Request
+                       Clarification
 ```
 
 ## Validation and Security
@@ -235,33 +239,33 @@ Convert unresolved customer conversations into structured support tickets and ma
 Customer Conversation
           |
           v
-   Ticket Extraction
+    Ticket Extraction
           |
           v
-Missing Information Check
+ Missing Information Check
           |
           v
-  Priority Calculation
+   Priority Calculation
           |
           v
-    SLA Calculation
+     SLA Calculation
           |
           v
-    Team Routing
+     Team Routing
           |
           v
-Duplicate / Related Check
+ Duplicate / Related Check
           |
           v
-   Agent Handoff
+    Agent Handoff
           |
           v
-SLA Monitoring
-      /        \
- Warning       Breach
-    |             |
-    v             v
- Continue      Escalate
+     SLA Monitoring
+        /        \
+   Warning       Breach
+      |             |
+      v             v
+   Continue      Escalate
 ```
 
 ## Validation and Security
@@ -301,6 +305,186 @@ Task 3 test result:
 
 ---
 
+# Task 4 — RAG Knowledge Assistant
+
+## Objective
+
+Build a RAG-based knowledge assistant that retrieves authorized, applicable, and grounded information from product documents, FAQs, policies, and troubleshooting guides.
+
+## Features Implemented
+
+- RAG-style knowledge retrieval
+- Product-document support
+- FAQ support
+- Policy support
+- Troubleshooting-guide support
+- Document metadata validation
+- Product metadata filtering
+- Region metadata filtering
+- Access-level enforcement
+- Effective-date filtering
+- Expiry-date filtering
+- Current-policy retrieval
+- Historical-policy retrieval
+- Future-policy exclusion
+- Expired-policy exclusion
+- Latest applicable policy selection
+- Document version comparison
+- Numeric version handling such as v9 and v10
+- Source citations for factual answers
+- Missing-evidence detection
+- Ambiguous-evidence detection
+- Unsupported-claim detection
+- Grounding validation
+- Prompt-injection protection for knowledge documents
+- Restricted-document protection
+- Clarification when evidence is insufficient or conflicting
+- No unsupported guessing
+
+## Workflow
+
+```text
+                 User Question
+                      |
+                      v
+              +---------------+
+              | Authorization |
+              +---------------+
+                      |
+                      v
+              +---------------+
+              | Date Filtering|
+              +---------------+
+                      |
+                      v
+              +---------------+
+              | Product/Region|
+              |    Filtering  |
+              +---------------+
+                      |
+                      v
+              +---------------+
+              | Prompt Safety |
+              +---------------+
+                      |
+                      v
+              +---------------+
+              |   Retrieval   |
+              +---------------+
+                      |
+                      v
+              +---------------+
+              | Policy /      |
+              | Version       |
+              | Resolution    |
+              +---------------+
+                      |
+                      v
+              +---------------+
+              | Evidence      |
+              | Extraction    |
+              +---------------+
+                      |
+             +--------+--------+
+             |                 |
+          Sufficient        Missing /
+          Evidence          Ambiguous
+             |                 |
+             v                 v
+       Grounding Check     Clarification
+             |
+             v
+       Source Citation
+             |
+             v
+          Answer
+```
+
+## Metadata
+
+Each knowledge document supports:
+
+- Product
+- Region
+- Access level
+- Effective date
+- Expiry date
+- Document version
+- Document type
+- Source
+
+Supported document types include:
+
+- Product
+- FAQ
+- Policy
+- Troubleshooting
+- General
+
+## Policy and Version Handling
+
+The assistant only uses policies applicable to the requested date.
+
+For current questions:
+
+- Future policies are excluded.
+- Expired policies are excluded.
+- The latest applicable policy is selected.
+
+For historical questions:
+
+- The policy active on the requested historical date is used.
+
+Document versions are compared numerically so versions such as `v10` are correctly treated as newer than `v9`.
+
+## Grounding and Security
+
+The RAG assistant treats knowledge documents as untrusted evidence.
+
+Prompt-injection instructions contained inside documents are rejected.
+
+Factual answers are checked against retrieved evidence. Numeric claims are explicitly validated so unsupported values are rejected.
+
+When evidence is missing or contradictory, the assistant does not guess. It requests clarification or refuses to provide an unsupported answer.
+
+Every factual answer includes source information containing the source document, version, and effective date.
+
+## Testing
+
+Task 4 has dedicated tests covering:
+
+- Product filtering
+- Region filtering
+- Expired-document exclusion
+- Future-document exclusion
+- Current-policy handling
+- Historical-policy handling
+- Restricted-document protection
+- Disabled-user protection
+- Prompt-injection rejection
+- Missing-evidence handling
+- Source citations
+- Supported document types
+- Unsupported document-type rejection
+- Invalid date ranges
+- v9/v10 version comparison
+- Latest policy version selection
+- Unsupported numeric claims
+- Supported numeric claims
+- Unsupported-claim detection
+- Ambiguous evidence
+- Developer-level access control
+
+Task 4 test result:
+
+```text
+22 tests
+22 passed
+0 failed
+```
+
+---
+
 # Security
 
 Security controls implemented across the project include:
@@ -313,6 +497,9 @@ Security controls implemented across the project include:
 - Audit logging
 - Controlled activation
 - Version rollback
+- Knowledge-document authorization
+- Grounding validation
+- Source citation
 
 ---
 
@@ -377,6 +564,7 @@ genai-customer-support-chatbot/
 │   ├── prompt_security.py
 │   ├── quality.py
 │   ├── quarantine.py
+│   ├── rag_assistant.py
 │   ├── scheduler.py
 │   ├── ticket_workflow.py
 │   ├── validation.py
@@ -397,6 +585,7 @@ genai-customer-support-chatbot/
 │
 ├── tests/
 │   ├── test_*.py
+│   ├── test_rag_assistant.py
 │   └── test_ticket_workflow.py
 │
 ├── .gitignore
@@ -447,11 +636,17 @@ python -m unittest discover -s tests -p "test_*.py"
 python -m unittest tests.test_ticket_workflow -v
 ```
 
+## Run Task 4 Tests
+
+```bash
+python -m unittest tests.test_rag_assistant -v
+```
+
 ## Latest Full Test Result
 
 ```text
-179 tests
-179 passed
+201 tests
+201 passed
 0 failed
 0 errors
 ```
@@ -464,6 +659,14 @@ python -m unittest tests.test_ticket_workflow -v
 0 failed
 ```
 
+## Latest Task 4 Test Result
+
+```text
+22 tests
+22 passed
+0 failed
+```
+
 ---
 
 # Internship Task Status
@@ -473,6 +676,7 @@ python -m unittest tests.test_ticket_workflow -v
 | Task 1 | Production Knowledge-Base Pipeline | Completed |
 | Task 2 | Multimodal Customer Support | Completed |
 | Task 3 | Automated Ticket Workflow and SLA Management | Completed |
+| Task 4 | RAG Knowledge Assistant | Completed |
 
 ---
 
@@ -483,6 +687,12 @@ The internship functionality was implemented as extensions to the original train
 The features were developed incrementally and tested after implementation.
 
 The complete project test suite was executed after integrating the internship tasks to verify that the existing functionality and internship functionality work together.
+
+Current visible automated test result:
+
+```text
+201 / 201 tests passing
+```
 
 ---
 
@@ -515,6 +725,9 @@ Status: Completed
 Task 3 — Automated Ticket Workflow and SLA Management
 Status: Completed
 
+Task 4 — RAG Knowledge Assistant
+Status: Completed
+
 Full Test Suite:
-179 / 179 tests passing
+201 / 201 tests passing
 ```
