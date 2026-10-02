@@ -1,30 +1,25 @@
 # GenAI Customer Support Chatbot
 
-A production-oriented GenAI customer support chatbot developed as part of an internship project. The system is designed to support customer conversations, knowledge-base management, multimodal evidence processing, automated ticket workflows, SLA management, RAG-based knowledge retrieval, sentiment analysis, and escalation.
-
-The project is implemented incrementally across five internship tasks, with automated tests covering the implemented functionality.
-
----
+A production-oriented Generative AI customer support chatbot developed as an internship project. The system is implemented incrementally across six assigned tasks and includes knowledge-base management, multimodal evidence processing, ticket workflows, RAG-based knowledge retrieval, sentiment analysis, escalation, multilingual conversations, and session management.
 
 ## Project Overview
 
-The chatbot provides an end-to-end customer support workflow that can:
+The chatbot is designed to support an end-to-end customer-support workflow:
 
 - Maintain and update a chatbot knowledge base
-- Process customer messages and supporting documents
-- Analyze images, screenshots, invoices, and PDFs
-- Convert unresolved conversations into structured tickets
-- Prioritize and route tickets
-- Manage configurable SLAs
+- Process new and modified support documents
+- Detect duplicate and invalid documents
+- Protect the pipeline against prompt injection and sensitive-data exposure
+- Analyse customer messages, screenshots, invoices, PDFs, and product images
+- Extract and validate customer/order evidence
+- Convert unresolved conversations into structured support tickets
+- Prioritize and route tickets using configurable SLA rules
 - Retrieve authorized and time-valid knowledge using RAG
 - Provide source-grounded answers
-- Detect customer sentiment and urgency
-- Detect sarcasm
-- Identify high-risk customer situations
-- Automatically escalate conversations
-- Maintain escalation audit information
-- Protect against prompt injection and sensitive-data exposure
-- Validate functionality through automated tests
+- Detect sentiment, frustration, urgency, sarcasm, and high-risk issues
+- Automatically escalate qualifying conversations
+- Support multilingual and mixed-language conversations
+- Preserve conversation context and manage session expiry/restoration
 
 ---
 
@@ -32,168 +27,137 @@ The chatbot provides an end-to-end customer support workflow that can:
 
 ## Task 1 – Production Knowledge-Base Pipeline
 
-### Status: Completed
+The production pipeline updates and monitors the chatbot knowledge base.
 
-The production knowledge-base pipeline manages updates to the chatbot's knowledge base while validating documents and protecting the system from invalid or unsafe updates.
-
-### Implemented Features
+### Implemented capabilities
 
 - Processes only new or modified documents
 - Detects duplicate documents
 - Quarantines invalid files
 - Maintains document versions
 - Supports rollback
-- Runs quality tests before activating updates
-- Rejects updates that reduce accuracy or grounding quality
+- Runs quality tests before activation
+- Rejects updates that fail configured accuracy or grounding thresholds
 - Supports configurable update scheduling
-- Retries failed updates after:
-  - 15 minutes
-  - 30 minutes
-  - 60 minutes
-- Activates approved updates during the configured maintenance window
-- Performs health checks after activation
-- Automatically rolls back updates when health checks fail
-- Supports access-control checks
+- Retries failed updates after 15, 30, and 60 minutes
+- Activates approved updates only during the maintenance window
+- Performs post-activation health checks
+- Supports automatic rollback when health checks fail
+- Implements access control
 - Provides prompt-injection protection
-- Masks sensitive information
-- Monitors:
-  - Latency
-  - Failures
-  - Confidence
-  - Escalations
+- Masks sensitive data
+- Monitors latency, failures, confidence, and escalations
 
-### Validation
+### Main Task 1 components
 
-The pipeline includes automated testing for scenarios such as:
-
-- Duplicate documents
-- Invalid documents
-- Failed updates
-- Unauthorized access
-- Maintenance-window handling
-- Rollback behaviour
-- Health-check failures
+```text
+app/access_control.py
+app/activation.py
+app/audit.py
+app/config.py
+app/document_tracker.py
+app/maintenance.py
+app/monitoring.py
+app/orchestrator.py
+app/pipeline.py
+app/prompt_security.py
+app/quality.py
+app/quarantine.py
+app/scheduler.py
+app/validation.py
+app/versioning.py
+```
 
 ---
 
 # Task 2 – Multimodal Customer Support
 
-### Status: Completed
+The chatbot was extended to analyse customer messages and supporting evidence such as screenshots, invoices, PDFs, and product images.
 
-The multimodal customer-support component processes customer messages together with supporting evidence such as screenshots, invoices, PDFs, and product images.
+### Implemented capabilities
 
-### Implemented Features
-
-The system can process and extract information such as:
-
-- Order IDs
-- Dates
-- Amounts
-- Product information
-- Error codes
-
-The extracted information can be compared with the customer's message to identify inconsistencies.
-
-### Evidence Handling
-
-The system:
-
-- Detects conflicts between customer messages and uploaded evidence
-- Requests clarification when information is missing or conflicting
-- Handles low-quality or blurred images
-- Avoids inventing missing values
+- Processes customer messages and supporting files
+- Extracts order IDs
+- Extracts dates
+- Extracts monetary amounts
+- Extracts product information
+- Extracts error codes
+- Compares extracted evidence with the customer's message
+- Detects conflicting evidence
+- Handles low-quality or unclear evidence
+- Requests clarification or another file when evidence is insufficient
+- Does not invent missing values
 - Masks personal and payment information in logs
-- Rejects unsafe instructions contained in uploaded content
-- Supports delayed/background processing for long-running operations
-- Handles upload retention and expiration requirements
+- Rejects unsafe files
+- Rejects malicious instructions hidden inside uploaded evidence
+- Supports background processing for long-running evidence processing
+- Supports notification of delayed processing
+- Supports configured upload retention and cleanup
 
-### Validation
+### Main Task 2 components
 
-Testing covers multimodal scenarios including:
-
-- Low-quality images
-- Conflicting invoices
-- Delayed processing
-- Expired files
-- Prompt injection in uploaded content
+```text
+app/background_queue.py
+app/data_masking.py
+app/evidence_extractor.py
+app/multimodal.py
+```
 
 ---
 
 # Task 3 – Automated Ticket Workflow and SLA Management
 
-### Status: Completed
+The chatbot converts unresolved customer conversations into structured support tickets.
 
-The ticket workflow converts unresolved customer conversations into structured support tickets and manages ticket priority, routing, SLA monitoring, and escalation.
+### Implemented capabilities
 
-## Ticket Creation
+- Extracts customer details
+- Extracts order details
+- Extracts product information
+- Extracts issue information
+- Extracts evidence
+- Extracts contact details
+- Identifies missing mandatory information
+- Calculates ticket priority
+- Considers severity
+- Considers sentiment
+- Considers waiting time
+- Considers customer impact
+- Considers SLA conditions
+- Routes tickets using team skills
+- Considers team availability
+- Considers workload
+- Considers business hours
+- Supports configurable SLA durations
+- Excludes configured weekends and holidays from SLA calculations
+- Generates a warning at 75% of the allowed SLA time
+- Escalates after an SLA breach
+- Supports runtime SLA configuration changes
+- Detects duplicate requests
+- Groups related issues
+- Separates unrelated issues
+- Generates a masked handoff summary
 
-Structured tickets can contain:
+### Main Task 3 component
 
-- Customer details
-- Order details
-- Product information
-- Issue description
-- Evidence
-- Contact details
-- Missing mandatory information
+```text
+app/ticket_workflow.py
+tests/test_ticket_workflow.py
+```
 
-## Priority Management
+### Task 3 dedicated test result
 
-Ticket priority considers factors such as:
-
-- Severity
-- Customer sentiment
-- Waiting time
-- Customer impact
-- SLA requirements
-
-## Ticket Routing
-
-Tickets can be routed based on:
-
-- Agent/team skills
-- Availability
-- Current workload
-- Business hours
-- SLA requirements
-
-## SLA Management
-
-The system supports:
-
-- Configurable SLA durations
-- Business-hour calculations
-- Weekend exclusions
-- Holiday exclusions
-- SLA warning thresholds
-- SLA breach escalation
-- Runtime SLA configuration changes
-
-## Duplicate and Related Tickets
-
-The workflow can:
-
-- Detect duplicate tickets
-- Group related conversations
-- Keep unrelated conversations separate
-
-## Handoff
-
-The system generates a masked handoff summary for transferring a customer issue to the appropriate support workflow.
-
-### Validation
-
-Task 3 includes automated tests covering ticket creation, priority, routing, SLA handling, duplicate detection, business hours, escalation, and configuration changes.
+```text
+15 / 15 tests passing
+```
 
 ---
 
 # Task 4 – RAG Knowledge Assistant
 
-### Status: Completed
+The chatbot was extended with a retrieval-augmented generation knowledge assistant using product documents, FAQs, policies, and troubleshooting information.
 
-The RAG-based knowledge assistant retrieves information from the chatbot's knowledge sources, including product documentation, FAQs, policies, and troubleshooting guides.
-
-## Knowledge Metadata
+### Document metadata
 
 Knowledge documents support metadata including:
 
@@ -204,202 +168,281 @@ Knowledge documents support metadata including:
 - Expiry date
 - Document version
 
-## Retrieval Rules
+### Implemented capabilities
 
-The system:
-
-- Retrieves relevant knowledge for customer questions
-- Applies authorization rules
-- Uses the latest applicable policy when policies conflict
-- Ignores future policies for current questions
-- Excludes expired information from current responses
-- Supports historical questions using the applicable information for the requested date
+- Retrieves authorized information
+- Selects the latest applicable policy when documents conflict
+- Ignores future-dated policies for current questions
+- Ignores expired policies for current questions
+- Supports historical questions using the policy active on the requested date
 - Provides source citations for factual answers
-- Refuses to provide unsupported information
-- Requests clarification when evidence is ambiguous
+- Refuses or requests clarification when evidence is missing
+- Handles ambiguous evidence
 - Detects unsupported claims
-- Protects against prompt injection in retrieved content
+- Ignores malicious instructions embedded in knowledge documents
 
-## Grounded Responses
+### Main Task 4 component
 
-The RAG assistant is designed to ensure that factual responses are supported by available knowledge sources.
+```text
+app/rag_assistant.py
+tests/test_rag_assistant.py
+```
 
-When sufficient evidence is unavailable, the system does not invent an answer and instead follows the configured clarification/refusal behaviour.
+### Task 4 dedicated test result
 
-### Validation
-
-Task 4 includes automated tests for:
-
-- Authorization
-- Effective dates
-- Expiry dates
-- Historical queries
-- Policy conflicts
-- Source citations
-- Missing evidence
-- Ambiguous evidence
-- Unsupported claims
-- Prompt injection
+```text
+22 / 22 tests passing
+```
 
 ---
 
 # Task 5 – Sentiment Analysis and Escalation
 
-### Status: Completed
+The chatbot was extended with multilingual sentiment analysis and automated escalation handling.
 
-The sentiment and escalation component analyzes customer messages and conversation history to determine sentiment, urgency, sarcasm, risk, response tone, and escalation requirements.
+### Sentiment capabilities
 
-## Sentiment Detection
+The system identifies:
 
-The system supports:
+- Positive messages
+- Neutral messages
+- Negative messages
+- Frustrated messages
+- Very negative messages
+- Urgent messages
+- Sarcastic messages
 
-- Positive
-- Neutral
-- Negative
-- Frustrated
-- Very negative
-- Urgent
+The analysis considers the current message and available conversation history.
 
-The analysis can consider both the current message and previous conversation history.
+### Implemented capabilities
 
-## Confidence Score
+- Generates sentiment confidence scores
+- Detects sarcasm
+- Adjusts response tone without changing business policies
+- Detects repeated negative messages
+- Detects high-risk account compromise issues
+- Detects duplicate payment issues
+- Detects legal threats
+- Handles calm high-risk complaints
+- Escalates repeated negative conversations
+- Routes urgent after-hours complaints to an on-call queue
+- Schedules normal after-hours complaints for the next working day
+- Handles weekends
+- Handles configured holidays
+- Escalates negative conversations unresolved for more than 15 minutes
+- Records escalation reason
+- Records the triggered condition
+- Records a conversation summary
+- Records escalation creation time
+- Records the escalation queue
 
-Sentiment analysis produces a confidence score representing the system's confidence in the detected sentiment.
+### Tone handling
 
-## Sarcasm Detection
+The implementation supports tone selection based on sentiment, including:
 
-The system detects common sarcastic expressions so that sarcastic complaints are not incorrectly interpreted as positive customer feedback.
+- Friendly tone for positive conversations
+- Empathetic tone for negative conversations
+- Neutral-professional tone for neutral conversations
+- Calm and clarifying tone for detected sarcasm
 
-Example:
-
-> "Great, another problem. Thanks for nothing."
-
-This type of message is handled as a sarcastic/negative interaction rather than genuine positive feedback.
-
-## Response Tone
-
-The system adjusts the recommended response tone based on customer sentiment without changing the underlying business policies.
-
-Supported tones include:
-
-- Friendly
-- Neutral professional
-- Empathetic
-- Calm and clarifying
-
----
-
-## High-Risk Escalation
-
-The system identifies high-risk situations including:
-
-### Account Compromise
-
-Examples include unauthorized access or unknown account activity.
-
-### Duplicate Payment
-
-Examples include a customer reporting that the same order or transaction was charged more than once.
-
-### Legal Threat
-
-Examples include a customer stating that they may take legal action.
-
-High-risk conditions can trigger escalation even when the customer's wording is calm.
-
----
-
-## Repeated Negative Messages
-
-Repeated negative messages can trigger automatic escalation.
-
-The threshold is configurable.
-
----
-
-## Negative Conversation Timeout
-
-A negative conversation that remains unresolved for more than 15 minutes can trigger automatic escalation.
-
----
-
-## After-Hours Handling
-
-Urgent complaints received outside business hours are routed to:
+### Main Task 5 component
 
 ```text
-on_call
+app/sentiment_escalation.py
+tests/test_sentiment_escalation.py
+task5_result.txt
 ```
 
-Normal complaints received outside business hours are routed/scheduled for:
+### Task 5 dedicated test result
 
 ```text
-next_business_day
+28 / 28 tests passing
 ```
 
-Normal complaints received during business hours can continue through the normal workflow.
-
 ---
 
-## Business Calendar
+# Task 6 – Multilingual Conversation and Session Management
 
-The escalation workflow supports:
+Task 6 extends the chatbot to support additional languages, mixed-language conversations, language switching, conversation context, and configurable session management.
 
-- Business hours
-- Weekends
-- Configured holidays
+## Supported languages
 
-This allows customer-support behaviour to change depending on the operating calendar.
+The configured language set includes:
 
----
-
-## Escalation Audit Information
-
-Each escalation records information including:
-
-- Reason
-- Triggered condition
-- Conversation summary
-- Creation timestamp
-- Queue
-
-This provides traceability for escalation decisions.
-
----
-
-## Multilingual Sentiment
-
-The sentiment component includes handling for supported multilingual examples, including:
-
+- English
 - Hindi
 - Kannada
 - Spanish
+- Tamil
+- Telugu
+- French
 
-The multilingual tests verify both language detection and negative/frustrated sentiment handling.
+The three additional languages introduced for Task 6 are:
+
+- Tamil
+- Telugu
+- French
+
+English is included as a supported language.
+
+## Multilingual capabilities
+
+The Task 6 implementation supports:
+
+- Multilingual customer messages
+- Mixed-language messages
+- Language switching within the same conversation
+- Language confidence scoring
+- Intent confidence scoring
+- Clarification when language confidence is low
+- Clarification when intent confidence is low
+- Spelling correction
+- Transliteration
+- Multiple requests in a single message
+- Corrected customer information
+- Preservation of important customer information
+- Conversation context retention
+
+## Information preservation
+
+The system is designed to preserve:
+
+- Customer names
+- Order IDs
+- Dates
+- Product codes
+
+## Conversation context
+
+The system supports:
+
+- At least 10 messages of configured context
+- Multiple simultaneous customer sessions
+- Context retention within the active session
+- Conversation summary restoration when applicable
+
+## Session lifecycle
+
+The configured Task 6 session rules are:
+
+- Active session inactivity timeout: 30 minutes
+- Session restoration window: 24 hours
+- A returning customer within the restoration window can have the conversation summary restored
+- A returning customer after the restoration window begins a new session
+
+## Configurable Task 6 settings
+
+The configuration includes:
+
+```json
+"multilingual_session": {
+    "languages": [
+        "english",
+        "hindi",
+        "kannada",
+        "spanish",
+        "tamil",
+        "telugu",
+        "french"
+    ],
+    "additional_languages": [
+        "tamil",
+        "telugu",
+        "french"
+    ],
+    "confidence_threshold": 0.60,
+    "intent_confidence_threshold": 0.60,
+    "max_context_messages": 10,
+    "session_inactivity_minutes": 30,
+    "session_restore_hours": 24
+}
+```
+
+## Main Task 6 files
+
+```text
+app/multilingual_session.py
+tests/test_multilingual_session.py
+```
+
+## Task 6 dedicated test result
+
+```text
+22 / 22 tests passing
+```
 
 ---
 
 # Project Structure
 
+The main project is organized into application modules, configuration, data, demo material, and automated tests.
+
 ```text
 genai-customer-support-chatbot/
 │
 ├── app/
-│   ├── ticket_workflow.py
+│   ├── access_control.py
+│   ├── activation.py
+│   ├── audit.py
+│   ├── background_queue.py
+│   ├── config.py
+│   ├── data_masking.py
+│   ├── document_tracker.py
+│   ├── evidence_extractor.py
+│   ├── main.py
+│   ├── maintenance.py
+│   ├── monitoring.py
+│   ├── multilingual_session.py
+│   ├── multimodal.py
+│   ├── orchestrator.py
+│   ├── pipeline.py
+│   ├── prompt_security.py
+│   ├── quality.py
+│   ├── quarantine.py
 │   ├── rag_assistant.py
-│   └── sentiment_escalation.py
+│   ├── scheduler.py
+│   ├── sentiment_escalation.py
+│   ├── ticket_workflow.py
+│   ├── validation.py
+│   └── versioning.py
 │
 ├── config/
 │   └── settings.json
 │
+├── data/
+│   ├── audit/
+│   ├── documents/
+│   ├── monitoring/
+│   ├── quarantine/
+│   └── versions/
+│
 ├── demo/
-│   └── ...
+│   └── sample_policy_v3.txt
 │
 ├── tests/
-│   ├── test_ticket_workflow.py
+│   ├── test_access_control.py
+│   ├── test_activation.py
+│   ├── test_audit.py
+│   ├── test_config.py
+│   ├── test_data_masking.py
+│   ├── test_document_tracker.py
+│   ├── test_evidence_extractor.py
+│   ├── test_maintenance.py
+│   ├── test_monitoring.py
+│   ├── test_monitoring_integration.py
+│   ├── test_multilingual_session.py
+│   ├── test_multimodal.py
+│   ├── test_orchestrator.py
+│   ├── test_pipeline.py
+│   ├── test_pipeline_masking.py
+│   ├── test_pipeline_prompt_security.py
+│   ├── test_quality.py
 │   ├── test_rag_assistant.py
+│   ├── test_scheduler.py
 │   ├── test_sentiment_escalation.py
-│   └── ...
+│   ├── test_ticket_workflow.py
+│   ├── test_validation.py
+│   └── test_versioning.py
 │
 ├── .gitignore
 ├── README.md
@@ -408,209 +451,173 @@ genai-customer-support-chatbot/
 
 ---
 
-# Important Task 5 Files
+# Configuration
 
-## Implementation
-
-```text
-app/sentiment_escalation.py
-```
-
-This file contains the Task 5 sentiment and escalation implementation.
-
-It includes functionality for:
-
-- Sentiment classification
-- Confidence scoring
-- Sarcasm detection
-- Conversation history
-- High-risk detection
-- Repeated-negative detection
-- Timeout-based escalation
-- Business-hour handling
-- Weekend handling
-- Holiday handling
-- Queue selection
-- Escalation audit information
-- Conversation state
-
-## Automated Tests
+The main configuration file is:
 
 ```text
-tests/test_sentiment_escalation.py
+config/settings.json
 ```
 
-This file contains the Task 5 automated test suite.
+The project uses configuration for areas including:
 
-## Task 5 Result
-
-```text
-task5_result.txt
-```
-
-This file contains Task 5 test-result information.
+- Maintenance windows
+- Retry delays
+- Quality thresholds
+- Health checks
+- Ticket business hours
+- Weekends
+- Holidays
+- SLA durations
+- Priority weights
+- Duplicate similarity thresholds
+- Related-issue similarity thresholds
+- Support-team availability and workload
+- Multilingual language settings
+- Language confidence
+- Intent confidence
+- Context size
+- Session inactivity
+- Session restoration
 
 ---
 
 # Testing
 
-Automated tests are included throughout the project.
+The project uses Python's built-in `unittest` framework.
 
-The final complete project test suite was executed successfully.
+## Run the complete test suite
+
+Use the Python interpreter from the project Anaconda environment:
+
+```powershell
+& "$env:USERPROFILE\anaconda3\envs\chatbot-internship\python.exe" -m unittest discover -s tests -p "test_*.py"
+```
+
+## Final test result
 
 ```text
-Ran 229 tests
+Ran 251 tests
+
 OK
 ```
 
-## Final Test Result
+Therefore:
 
 ```text
-229 / 229 tests passing
+251 / 251 tests passing
 ```
 
-## Task 5 Test Result
+## Dedicated task test results
 
 ```text
-28 / 28 tests passing
+Task 3: 15 / 15
+Task 4: 22 / 22
+Task 5: 28 / 28
+Task 6: 22 / 22
 ```
 
-## Task 4 Test Result
-
-```text
-22 / 22 tests passing
-```
-
-## Task 3 Test Result
-
-```text
-15 / 15 tests passing
-```
-
-The test suites cover the implemented functionality across the five internship tasks.
+The complete suite includes the automated tests for the earlier project components as well as the dedicated tests for the latest tasks.
 
 ---
 
-# Security and Safety
+# Security and Reliability
 
-The project incorporates security and safety measures for customer-support workflows.
+Security and reliability considerations implemented across the project include:
 
-These include:
-
-- Access-control checks
-- Sensitive-data masking
-- Prompt-injection protection
-- Authorization-aware knowledge retrieval
-- Evidence validation
-- Protection against unsupported claims
-- High-risk issue escalation
-- Escalation audit information
-- Safe handling of missing information
-- Avoidance of fabricated customer/order information
-- Validation of uploaded customer evidence
-
----
-
-# Configuration
-
-The system uses configuration-driven behaviour where applicable.
-
-Configuration can include items such as:
-
-- Business hours
-- Holidays
-- SLA durations
-- Sentiment thresholds
-- Escalation thresholds
-- Maintenance windows
-- Retry intervals
-- Knowledge-base update settings
-
-Configuration allows workflow behaviour to be adjusted without changing the core application logic.
-
----
-
-# Technologies and Concepts
-
-The project demonstrates concepts related to:
-
-- Python
-- Generative AI
-- Customer-support automation
-- Retrieval-Augmented Generation (RAG)
-- Knowledge-base management
-- Document processing
-- Multimodal customer support
-- OCR/evidence processing
-- Ticket automation
-- SLA management
-- Sentiment analysis
-- Sarcasm detection
-- Escalation workflows
 - Access control
 - Prompt-injection protection
 - Sensitive-data masking
-- Automated testing
-- Configuration-driven workflows
-- Git
-- GitHub
+- Input validation
+- File validation
+- Quarantine handling
+- Audit logging
+- Monitoring
+- Quality checks before knowledge activation
+- Version tracking
+- Rollback support
+- Health checks
+- Duplicate detection
+- Evidence validation
+- Source-grounded RAG responses
+- Authorization-aware retrieval
+- Escalation auditing
+- Safe handling of unsupported or ambiguous evidence
 
 ---
 
-# Development Workflow
+# Task Completion Summary
 
-The project was developed incrementally according to the internship task sequence.
-
-```text
-Task 1
-Production Knowledge-Base Pipeline
-        │
-        ▼
-Task 2
-Multimodal Customer Support
-        │
-        ▼
-Task 3
-Automated Ticket Workflow and SLA Management
-        │
-        ▼
-Task 4
-RAG Knowledge Assistant
-        │
-        ▼
-Task 5
-Sentiment Analysis and Escalation
-```
-
-Each task was implemented and validated with automated tests before moving to the next stage.
+| Task | Description | Dedicated Tests | Status |
+|------|-------------|----------------:|--------|
+| Task 1 | Production Knowledge-Base Pipeline | Covered by project suite | Completed |
+| Task 2 | Multimodal Customer Support | Covered by project suite | Completed |
+| Task 3 | Automated Ticket Workflow and SLA Management | 15 / 15 | Completed |
+| Task 4 | RAG Knowledge Assistant | 22 / 22 | Completed |
+| Task 5 | Sentiment Analysis and Escalation | 28 / 28 | Completed |
+| Task 6 | Multilingual Conversation and Session Management | 22 / 22 | Completed |
 
 ---
 
-# Final Status
-
-| Task | Description | Status |
-|------|-------------|--------|
-| Task 1 | Production Knowledge-Base Pipeline | Completed |
-| Task 2 | Multimodal Customer Support | Completed |
-| Task 3 | Automated Ticket Workflow and SLA Management | Completed |
-| Task 4 | RAG Knowledge Assistant | Completed |
-| Task 5 | Sentiment Analysis and Escalation | Completed |
-
-## Final Automated Test Status
+# Final Automated Test Status
 
 ```text
-229 / 229 tests passing
+251 / 251 tests passing
 ```
 
-## Overall Project Status
+# Overall Project Status
 
 ```text
-All 5 internship tasks completed.
+All 6 internship tasks completed.
 Full automated test suite passing.
+Task 6 dedicated tests: 22 / 22 passing.
+Complete project test suite: 251 / 251 passing.
+```
+
+---
+
+# Development Environment
+
+The project was tested using:
+
+```text
+Python 3.12.14
+Anaconda environment: chatbot-internship
+Windows
+```
+
+The environment can be invoked directly with:
+
+```powershell
+& "$env:USERPROFILE\anaconda3\envs\chatbot-internship\python.exe"
+```
+
+If `conda` is not available as a PowerShell command, the environment's Python executable can still be used directly as shown above.
+
+---
+
+# Internship Project
+
+This repository contains the implementation developed incrementally for the assigned internship tasks.
+
+The final implementation covers:
+
+```text
+Knowledge Base
+      ↓
+Multimodal Evidence
+      ↓
+Ticket Workflow + SLA
+      ↓
+RAG Knowledge Assistant
+      ↓
+Sentiment + Escalation
+      ↓
+Multilingual Conversations + Sessions
 ```
 
 ---
 
 # Author
 
-Developed as part of an internship project focused on Generative AI and customer-support automation.
+GenAI Customer Support Chatbot Internship Project

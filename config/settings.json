@@ -36,11 +36,11 @@
         },
         "warning_threshold": 0.75,
         "priority_weights": {
-            "severity": 0.30,
-            "sentiment": 0.20,
-            "waiting_time": 0.20,
-            "customer_impact": 0.20,
-            "sla": 0.10
+            "severity": 0.3,
+            "sentiment": 0.2,
+            "waiting_time": 0.2,
+            "customer_impact": 0.2,
+            "sla": 0.1
         },
         "duplicate_similarity_threshold": 0.85,
         "related_similarity_threshold": 0.55,
@@ -92,5 +92,26 @@
                 "max_workload": 15
             }
         ]
+    },
+    "multilingual_session": {
+        "languages": [
+            "english",
+            "hindi",
+            "kannada",
+            "spanish",
+            "tamil",
+            "telugu",
+            "french"
+        ],
+        "additional_languages": [
+            "tamil",
+            "telugu",
+            "french"
+        ],
+        "confidence_threshold": 0.6,
+        "intent_confidence_threshold": 0.6,
+        "max_context_messages": 10,
+        "session_inactivity_minutes": 30,
+        "session_restore_hours": 24
     }
 }
